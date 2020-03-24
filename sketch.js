@@ -1,16 +1,19 @@
 let boardDims = {
-    x:0,
-    y:0,
-    width:500,
-    height:500,
+    x: 0,
+    y: 0,
+    width: 500,
+    height: 500,
 }
 updateBoardEnds(boardDims)
 
 let board = null;
 let newGame = true;
 let gameBoardScores = null;
+let player = null;
+let computersPlayer = null;
 
-function setup() {
+function setup()
+{
     createCanvas(windowWidth, windowHeight);
 
     angleMode(DEGREES)
@@ -19,15 +22,19 @@ function setup() {
 
     background(220);
 
-  
-    let board = genBoard();
-    let player = 2;
 
-  }
+    board = genBoard();
+    player = 2;
+    computersPlayer = togglePlayer(player);
+    gameBoardScores = genBoardScores(computersPlayer, player);
+    pickNextBestMove
+
+}
 
 //  overflow hidden
 
-function draw() {
+function draw()
+{
     resizeCanvas(windowWidth, windowHeight);
     resizeAndCenterBoard(boardDims);
 
@@ -39,21 +46,21 @@ function draw() {
         let movesLeft = true;
         let winner = false;
         let player = 2;
-        computersPlayer = random([1, 2]);
-        print(computersPlayer)
+        // computersPlayer = random([1, 2]);
+        // print(computersPlayer)
         newGame = false;
     }
     else
     {
-        gameBoardScores = genBoardScores(computersPlayer, player);
-        print(gameBoardScores.length);
+        // gameBoardScores = genBoardScores(computersPlayer, player);
+        // print(gameBoardScores.length);
     }
 
 
     let mouseSlotCoords = getMouseSlotCoords(boardDims);
-    
+
     drawBoard(board, boardDims.x, boardDims.y, boardDims.endX, boardDims.endY);
-    if( !(mouseSlotCoords === false))
+    if (!(mouseSlotCoords === false))
     {
         let slots = listSlots(boardDims);
         let mouseSlotX = mouseSlotCoords[0];
@@ -65,18 +72,20 @@ function draw() {
     }
 }
 
-function getBoardScores(inBoard, myPlayer, inPlayer, depth=0)
+function getBoardScores(inBoard, myPlayer, inPlayer, depth = 0)
 {
     let stack = [];
     let boardScores = {};
 
     stack.push(
-        {'board':inBoard,
-         'player':inPlayer,
-         'depth':depth}
+        {
+            'board': inBoard,
+            'player': inPlayer,
+            'depth': depth
+        }
     );
 
-    while( stack.length > 0 )
+    while (stack.length > 0)
     {
         let args = stack[stack.length - 1];
         let board = args.board;
@@ -85,41 +94,44 @@ function getBoardScores(inBoard, myPlayer, inPlayer, depth=0)
 
         //   base case, end board
         let winner = getWinner(board);
-        if( !(winner === false) )
+        if (!(winner === false))
         {
             boardScores[hash(board)] = scoreEndBoard(board, depth, myPlayer);
             stack.pop();
         }
-        else if( noMoreMoves(board) )
+        else if (noMoreMoves(board))
         {
             boardScores[hash(board)] = scoreEndBoard(board, depth, myPlayer);
             stack.pop();
         }
         else    //   nobody won yet, and there are move moves
-        {   
+        {
             let nextBoards = listNextBoards(board, player);
             let allPresent = true;
             let score = 0;
-            for( let nextBoard of nextBoards )
+            for (let nextBoard of nextBoards)
             {
-                if( hash(nextBoard) in boardScores )
+                if (hash(nextBoard) in boardScores)
                 {
                     score += boardScores[hash(nextBoard)];
                 }
                 else
                 {
                     allPresent = false;
-                    let newArgs = { 'board':nextBoard, 
-                                    'player':togglePlayer(player),
-                                    'depth':depth + 1};
+                    let newArgs = {
+                        'board': nextBoard,
+                        'player': togglePlayer(player),
+                        'depth': depth + 1
+                    };
                     stack.push(newArgs);
                 }
             }
-            if( allPresent)
+            if (allPresent)
             {
                 boardScores[hash(board)] = score;
                 stack.pop()
             }
+        }
     }
     return boardScores
 }
@@ -134,15 +146,15 @@ function genBoardScores(myPlayer, currentTurnPlayer)
 function scoreEndBoard(board, depth, myPlayer)
 {
     let winner = getWinner(board);
-    if( winner === false )
+    if (winner === false)
     {
         return -100 * Math.pow(2, 9 - depth)    //   tie is always depth 9..
     }
-    else if( winner == togglePlayer(myPlayer) ) 
+    else if (winner == togglePlayer(myPlayer))
     {
         return -1000 * Math.pow(2, 9 - depth)
     }
-    else if( winner == myPlayer)
+    else if (winner == myPlayer)
     {
         return 1000000 / Math.pow(2, depth)
     }
@@ -173,19 +185,19 @@ function updateBoardEnds(boardDims)
 
 function isInside(x, y, x1, y1, x2, y2)
 {
-    if( x < x1)
+    if (x < x1)
     {
         return false;
     }
-    else if(x > x2)
+    else if (x > x2)
     {
         return false;
     }
-    else if(y < y1)
+    else if (y < y1)
     {
         return false;
     }
-    else if(y > y2)
+    else if (y > y2)
     {
         return false;
     }
@@ -202,14 +214,14 @@ function listSlots(boardDims)
     let slots = []
     let thirdWidth = boardDims.width / 3.0;
     let thirdHeight = boardDims.height / 3.0;
-    for(let row = 0; row < 3; row++)
+    for (let row = 0; row < 3; row++)
     {
         let rowSlots = []
-        for(let col = 0; col < 3; col++)
+        for (let col = 0; col < 3; col++)
         {
             let tlx = boardDims.x + row * thirdWidth;
             let brx = tlx + thirdWidth;
-            let tly = boardDims.y + col * thirdHeight;            
+            let tly = boardDims.y + col * thirdHeight;
             let bry = tly + thirdHeight;
 
             let slot = [tlx, tly, brx, bry]
@@ -223,12 +235,12 @@ function listSlots(boardDims)
 function getMouseSlotCoords(boardDims)
 {
     let slots = listSlots(boardDims)
-    for(let row = 0; row < 3; row++)
+    for (let row = 0; row < 3; row++)
     {
-        for(let col = 0; col < 3; col++)
+        for (let col = 0; col < 3; col++)
         {
             let slot = slots[row][col];
-            if(isInside(mouseX, mouseY, slot[0], slot[1], slot[2], slot[3]))
+            if (isInside(mouseX, mouseY, slot[0], slot[1], slot[2], slot[3]))
             {
                 return [col, row];
             }
@@ -240,7 +252,7 @@ function getMouseSlotCoords(boardDims)
 function unHash(hash)
 {
     let boardConcat = []
-    for( c of hash)
+    for (c of hash)
     {
         boardConcat.push(parseInt(c))
     }
@@ -252,16 +264,20 @@ function unHash(hash)
     return board
 }
 
-function togglePlayer(currentPlayer) {
-    if (currentPlayer == 2) {
+function togglePlayer(currentPlayer)
+{
+    if (currentPlayer == 2)
+    {
         return 1;
     }
     return 2;
 }
 
-function hash(board) {
+function hash(board)
+{
     let rowKeys = []
-    for (let r = 0; r < 3; r++) {
+    for (let r = 0; r < 3; r++)
+    {
         rowKeys.push(board[r].join(''))
     }
     let key = rowKeys.join('');
@@ -269,7 +285,8 @@ function hash(board) {
 }
 
 
-function clone2d(arr) {
+function clone2d(arr)
+{
     var newArray = [];
     for (var i = 0; i < arr.length; i++)
         newArray[i] = arr[i].slice();
@@ -277,7 +294,8 @@ function clone2d(arr) {
 }
 
 
-function drawX(x1, y1, x2, y2) {
+function drawX(x1, y1, x2, y2)
+{
     let xMid = (x2 - x1) / 2 + x1;
     let yMid = (y2 - y1) / 2 + y1;
 
@@ -294,7 +312,8 @@ function drawX(x1, y1, x2, y2) {
 }
 
 
-function drawO(x1, y1, x2, y2) {
+function drawO(x1, y1, x2, y2)
+{
     let poofyness = (x2 - x1) / 5.0;
     let shrinkyness = (x2 - x1) / 6.0;
 
@@ -307,7 +326,8 @@ function drawO(x1, y1, x2, y2) {
 
 
 //  draw board
-function drawBoard(board, x1, y1, x2, y2) {
+function drawBoard(board, x1, y1, x2, y2)
+{
     let xThird = (x2 - x1) / 3.0;
     let yThird = (y2 - y1) / 3.0;
     let x2Thirds = xThird * 2.0;
@@ -326,20 +346,24 @@ function drawBoard(board, x1, y1, x2, y2) {
 
     /*
     const foobar = ['A', 'B', 'C'];
-  
+    
     for (const [index, element] of foobar.entries()) {
-      console.log(index, element);
+        console.log(index, element);
     }
     */
-    for (const [rowNum, row] of board.entries()) {
-        for (const [colNum, col] of row.entries()) {
-            if (col == 1) {
+    for (const [rowNum, row] of board.entries())
+    {
+        for (const [colNum, col] of row.entries())
+        {
+            if (col == 1)
+            {
                 let xPos = x1 + colNum * xThird;
                 let yPos = y1 + rowNum * yThird;
                 let endX = xPos + xThird;
                 let endY = yPos + yThird;
                 drawO(xPos, yPos, endX, endY);
-            } else if (col == 2) {
+            } else if (col == 2)
+            {
                 let xPos = x1 + colNum * xThird;
                 let yPos = y1 + rowNum * yThird;
                 let endX = xPos + xThird;
@@ -354,7 +378,8 @@ function drawBoard(board, x1, y1, x2, y2) {
     // rect(x1, y1, x2, y2);
 }
 
-function genBoard() {
+function genBoard()
+{
     let board = [
         [0, 0, 0],
         [0, 0, 0],
@@ -364,33 +389,43 @@ function genBoard() {
 }
 
 
-function getWinner(board) {
+function getWinner(board)
+{
     targets = [1, 2]
-    for (let target of targets) {
+    for (let target of targets)
+    {
         //  check rows
-        for (let r = 0; r < 3; r++) {
+        for (let r = 0; r < 3; r++)
+        {
             let numTargets = 0;
-            for (let col of board[r]) {
-                if (col == target) {
+            for (let col of board[r])
+            {
+                if (col == target)
+                {
                     numTargets++;
                 }
             }
-            if (numTargets == 3) {
+            if (numTargets == 3)
+            {
                 return target;
             }
         }
 
 
         //  check cols
-        for (let c = 0; c < 3; c++) {
+        for (let c = 0; c < 3; c++)
+        {
             let numTargets = 0;
-            for (let r = 0; r < 3; r++) {
+            for (let r = 0; r < 3; r++)
+            {
                 let piece = board[r][c];
-                if (piece == target) {
+                if (piece == target)
+                {
                     numTargets++;
                 }
             }
-            if (numTargets == 3) {
+            if (numTargets == 3)
+            {
                 return target;
             }
         }
@@ -408,15 +443,19 @@ function getWinner(board) {
                 [2, 0]
             ]
         ]
-        for (let diag of diagPositions) {
+        for (let diag of diagPositions)
+        {
             let numTargets = 0;
-            for (const [x, y] of diag) {
+            for (const [x, y] of diag)
+            {
                 let piece = board[y][x];
-                if (piece == target) {
+                if (piece == target)
+                {
                     numTargets++;
                 }
             }
-            if (numTargets == 3) {
+            if (numTargets == 3)
+            {
                 return target;
             }
         }
@@ -424,13 +463,16 @@ function getWinner(board) {
     return false;
 }
 
-function listEmpties(board) {
+function listEmpties(board)
+{
     let empties = []
-    print(board)
-    for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 3; col++) {
+    for (let row = 0; row < 3; row++)
+    {
+        for (let col = 0; col < 3; col++)
+        {
             let piece = board[row][col];
-            if (piece == 0) {
+            if (piece == 0)
+            {
                 empties.push([col, row])
             }
         }
@@ -438,11 +480,13 @@ function listEmpties(board) {
     return empties;
 }
 
-function listNextBoards(board, player) {
+function listNextBoards(board, player)
+{
     let empties = listEmpties(board)
 
     let nextBoards = [];
-    for (let empty of empties) {
+    for (let empty of empties)
+    {
         let anotherBoard = clone2d(board);
         let x = empty[0]
         let y = empty[1]
@@ -453,10 +497,14 @@ function listNextBoards(board, player) {
     return nextBoards;
 }
 
-function isMoreMoves(board) {
-    for (let row of board) {
-        for (let col of row) {
-            if (col == 0) {
+function isMoreMoves(board)
+{
+    for (let row of board)
+    {
+        for (let col of row)
+        {
+            if (col == 0)
+            {
                 return true;
             }
         }

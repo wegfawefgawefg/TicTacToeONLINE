@@ -89,14 +89,14 @@ function draw()
 
                     if(validMove)
                     {
-                        if (player == 1)
-                        {
-                            drawO(slotDims[0], slotDims[1], slotDims[2], slotDims[3]);
-                        }
-                        else
-                        {
-                            drawX(slotDims[0], slotDims[1], slotDims[2], slotDims[3]);
-                        }
+                        // if (player == 1)
+                        // {
+                        //     drawO(slotDims[0], slotDims[1], slotDims[2], slotDims[3]);
+                        // }
+                        // else
+                        // {
+                        //     drawX(slotDims[0], slotDims[1], slotDims[2], slotDims[3]);
+                        // }
                         if(mouseIsPressed)
                         {
                             mainBoard[mouseSlotY][mouseSlotX] = player;

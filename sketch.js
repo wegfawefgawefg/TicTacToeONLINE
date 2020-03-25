@@ -6,11 +6,13 @@ let boardDims = {
 }
 updateBoardEnds(boardDims)
 
-let board = null;
+let mainBoard = null;
 let newGame = true;
 let gameBoardScores = null;
 let player = null;
 let computersPlayer = null;
+let winner = false;
+let pastGames = [];
 
 function setup()
 {
@@ -23,12 +25,10 @@ function setup()
     background(220);
 
 
-    board = genBoard();
+    mainBoard = genBoard();
     player = 2;
-    computersPlayer = togglePlayer(player);
-    gameBoardScores = genBoardScores(computersPlayer, player);
-    pickNextBestMove
-
+    computersPlayer = random([1,2]);
+    
 }
 
 //  overflow hidden
@@ -40,35 +40,88 @@ function draw()
 
     background(255);
 
-    if(newGame === true)
+    if (newGame === true)
     {
-        board = genBoard();
-        let movesLeft = true;
-        let winner = false;
-        let player = 2;
-        // computersPlayer = random([1, 2]);
-        // print(computersPlayer)
+        mainBoard = genBoard();
+        winner = false;
+        movesLeft = true;
+
+        player = 2;
+        computersPlayer = random([1, 2]);
+        print(computersPlayer)
         newGame = false;
+        gameBoardScores = genBoardScores(computersPlayer, player);
     }
     else
     {
-        // gameBoardScores = genBoardScores(computersPlayer, player);
-        // print(gameBoardScores.length);
-    }
+        if(isMoreMoves(mainBoard) && !winner)
+        {
+            drawBoard(mainBoard, boardDims.x, boardDims.y, boardDims.endX, boardDims.endY);
+            print(mainBoard)
+            // let bestMove = pickBestNextBoard(gameBoardScores, board, computersPlayer);
+            // drawBoard(bestMove, 0, 300, 100, 400);
 
+            if(player == computersPlayer)
+            {
+                let bestMove = pickBestNextBoard(gameBoardScores, mainBoard, computersPlayer);
+                drawBoard(bestMove, 0, 300, 100, 400);
+                mainBoard = bestMove;
+                player = togglePlayer(player);
+            }
+            else    //  players turn
+            {
+                let mouseSlotCoords = getMouseSlotCoords(boardDims);
+                if (!(mouseSlotCoords === false))
+                {
+                    
+                    let mouseSlotX = mouseSlotCoords[0];
+                    let mouseSlotY = mouseSlotCoords[1];
+                    let slots = listSlots(boardDims);
+                    let slotDims = slots[mouseSlotY][mouseSlotX];
 
-    let mouseSlotCoords = getMouseSlotCoords(boardDims);
+                    //  check if mouse slot is valid
+                    let mouseHoverPiece = mainBoard[mouseSlotY][mouseSlotX];
+                    let validMove = false;
+                    if(mouseHoverPiece === 0)
+                    {
+                        validMove = true;
+                    }
 
-    drawBoard(board, boardDims.x, boardDims.y, boardDims.endX, boardDims.endY);
-    if (!(mouseSlotCoords === false))
-    {
-        let slots = listSlots(boardDims);
-        let mouseSlotX = mouseSlotCoords[0];
-        let mouseSlotY = mouseSlotCoords[1];
-        let slotDims = slots[mouseSlotY][mouseSlotX];
-        fill(100, 100, 100);
-        rectMode(CORNERS);
-        rect(slotDims[0], slotDims[1], slotDims[2], slotDims[3]);
+                    if(validMove)
+                    {
+                        if (player == 1)
+                        {
+                            drawO(slotDims[0], slotDims[1], slotDims[2], slotDims[3]);
+                        }
+                        else
+                        {
+                            drawX(slotDims[0], slotDims[1], slotDims[2], slotDims[3]);
+                        }
+                        if(mouseIsPressed)
+                        {
+                            mainBoard[mouseSlotY][mouseSlotX] = player;
+                            player = togglePlayer(player);
+                        }
+                    }
+                }
+            }
+            winner = getWinner(mainBoard)
+            movesLeft = !noMoreMoves(mainBoard)
+        }
+        else
+        {
+            let youLost = winner == computersPlayer;
+            let youTied = winner == false;
+            pastGames.push({'board':mainBoard,
+                            'youLost':youLost,
+                            'youTied':youTied})
+            if(pastGames.length > 8)
+            {
+                pastGames.shift()
+            }
+            newGame = true;
+        }
+        debugDrawBoards(pastGames);
     }
 }
 
@@ -156,7 +209,7 @@ function scoreEndBoard(board, depth, myPlayer)
     }
     else if (winner == myPlayer)
     {
-        return 1000000 / Math.pow(2, depth)
+        return 10 / Math.pow(2, depth)
     }
 }
 
@@ -205,7 +258,6 @@ function isInside(x, y, x1, y1, x2, y2)
     {
         return true;
     }
-
 }
 
 //  function to list slots
@@ -219,12 +271,12 @@ function listSlots(boardDims)
         let rowSlots = []
         for (let col = 0; col < 3; col++)
         {
-            let tlx = boardDims.x + row * thirdWidth;
+            let tlx = boardDims.x + col * thirdWidth;
             let brx = tlx + thirdWidth;
-            let tly = boardDims.y + col * thirdHeight;
+            let tly = boardDims.y + row * thirdHeight;
             let bry = tly + thirdHeight;
 
-            let slot = [tlx, tly, brx, bry]
+            let slot = [tlx, tly, brx, bry, row * 2 + col];
             rowSlots.push(slot)
         }
         slots.push(rowSlots)
@@ -249,11 +301,67 @@ function getMouseSlotCoords(boardDims)
     return false;
 }
 
+function debugDrawBoards(someBoards)
+{
+    for (let i = 0; i < someBoards.length; i++)
+    {
+        let nextBoard = someBoards[i].board;
+        let youLost = someBoards[i].youLost;
+        let youTied = someBoards[i].youTied;
+
+        let bottomLeft = windowHeight;
+        let nextBoardWidth = 100;
+        let nextBoardHeight = 100;
+        let nextBoardX = nextBoardWidth * i + 10 * i;
+        let nextBoardY = bottomLeft - nextBoardHeight;
+        let nextBoardEndX = nextBoardX + nextBoardWidth;
+        let nextBoardEndY = bottomLeft;
+
+        drawBoard(nextBoard, nextBoardX, nextBoardY, nextBoardEndX, nextBoardEndY);
+
+        noFill();
+        if(youLost)
+        {
+            stroke(255, 0, 0);
+        }
+        else if(youTied)
+        {
+            stroke(100, 100, 100);
+        }
+        else
+        {
+            stroke(0, 255, 0);
+        }
+        strokeWeight(2);
+        rect(nextBoardX, nextBoardY, nextBoardEndX, nextBoardEndY);
+        
+    }
+
+}
+
+function pickBestNextBoard(boardScores, inBoard, myPlayer)
+{
+    let nextBoards = listNextBoards(inBoard, myPlayer);
+    let bestBoard = null;
+    let bestScore = null;
+    for (let nextBoard of nextBoards)
+    {
+        let score = boardScores[hash(nextBoard)];
+        if ((score > bestScore) || (bestScore === null))
+        {
+            bestBoard = nextBoard;
+            bestScore = score;
+        }
+    }
+    return bestBoard;
+}
+
 function unHash(hash)
 {
     let boardConcat = []
-    for (c of hash)
+    for (let i = 0; i < hash.length; i++)
     {
+        let c = hash[i];
         boardConcat.push(parseInt(c))
     }
     let board = [
@@ -302,7 +410,7 @@ function drawX(x1, y1, x2, y2)
     let poofyness = (x2 - x1) / 10.0;
     rectMode(CORNERS);
     noStroke();
-    fill(255)
+    fill(0)
     push();
     translate(xMid, yMid);
     rotate(45);
@@ -314,12 +422,12 @@ function drawX(x1, y1, x2, y2)
 
 function drawO(x1, y1, x2, y2)
 {
-    let poofyness = (x2 - x1) / 5.0;
+    let poofyness = (x2 - x1) / 5.5;
     let shrinkyness = (x2 - x1) / 6.0;
 
     ellipseMode(CORNERS);
     strokeWeight(poofyness);
-    stroke(255, 255, 255);
+    stroke(0);
     noFill();
     ellipse(x1 + shrinkyness, y1 + shrinkyness, x2 - shrinkyness, y2 - shrinkyness);
 }
@@ -351,18 +459,19 @@ function drawBoard(board, x1, y1, x2, y2)
         console.log(index, element);
     }
     */
-    for (const [rowNum, row] of board.entries())
+    for (let rowNum = 0; rowNum < 3; rowNum++)
     {
-        for (const [colNum, col] of row.entries())
+        for (let colNum = 0; colNum < 3; colNum++)
         {
-            if (col == 1)
+            let piece = board[rowNum][colNum];
+            if (piece == 1)
             {
                 let xPos = x1 + colNum * xThird;
                 let yPos = y1 + rowNum * yThird;
                 let endX = xPos + xThird;
                 let endY = yPos + yThird;
                 drawO(xPos, yPos, endX, endY);
-            } else if (col == 2)
+            } else if (piece == 2)
             {
                 let xPos = x1 + colNum * xThird;
                 let yPos = y1 + rowNum * yThird;
